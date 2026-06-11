@@ -97,3 +97,11 @@ resource "aws_route_table_association" "pub_2" {
   subnet_id      = aws_subnet.public_2.id
   route_table_id = aws_route_table.public.id
 }
+# 8 API Gateway (Punto de entrada regional)
+resource "aws_api_gateway_rest_api" "api" {
+  name        = "${var.proyecto}-${var.ambiente}-api"
+  description = "API Gateway para el flujo dinamico"
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+}
