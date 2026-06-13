@@ -35,3 +35,23 @@ resource "aws_security_group" "data_sg" {
   }
   tags = { Name = "${var.proyecto}-${var.ambiente}-data-sg", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 }
+
+resource "random_password" "db_password" {
+  length  = 16
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "db_credentials" {
+  name = "${var.proyecto}-${var.ambiente}-db-credentials"
+  tags = { Name = "${var.proyecto}-${var.ambiente}-db-credentials", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+}
+
+resource "aws_secretsmanager_secret_version" "db_credentials_version" {
+  secret_id     = aws_secretsmanager_secret.db_credentials.id
+  secret_string = jsonencode({
+    username = "admin"
+    password = random_password.db_password.result
+    engine   = var.db_engine
+    port     = 3306
+  })
+}
