@@ -6,19 +6,19 @@ module "network" {
 }
 
 module "data" {
-  source     = "./modules/data"
-  proyecto   = var.proyecto
-  ambiente   = var.ambiente
+  source   = "./modules/data"
+  proyecto = var.proyecto
+  ambiente = var.ambiente
 }
 
 module "compute" {
-  source     = "./modules/compute"
-  proyecto   = var.proyecto
-  ambiente   = var.ambiente
+  source   = "./modules/compute"
+  proyecto = var.proyecto
+  ambiente = var.ambiente
 }
 
 module "edge" {
-  source     = "./modules/edge"
-  proyecto   = var.proyecto
-  ambiente   = var.ambiente
+  source   = "./modules/edge"
+  proyecto = var.proyecto
+  ambiente = var.ambiente
 }

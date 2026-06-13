@@ -13,5 +13,5 @@ variable "proyecto" {
 variable "ambiente" {
   description = "Entorno de ejecucion (develop, staging, main)"
   type        = string
-  default     = "dev" 
+  default     = "dev"
 }
