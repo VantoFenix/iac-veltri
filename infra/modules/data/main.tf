@@ -55,3 +55,27 @@ resource "aws_secretsmanager_secret_version" "db_credentials_version" {
     port     = 3306
   })
 }
+
+resource "aws_rds_cluster" "aurora_cluster" {
+  cluster_identifier      = "${var.proyecto}-${var.ambiente}-aurora-cluster"
+  engine                  = var.db_engine
+  engine_version          = var.db_engine_version
+  master_username         = jsondecode(aws_secretsmanager_secret_version.db_credentials_version.secret_string)["username"]
+  master_password         = jsondecode(aws_secretsmanager_secret_version.db_credentials_version.secret_string)["password"]
+  db_subnet_group_name    = aws_db_subnet_group.aurora_subnet_group.name
+  vpc_security_group_ids  = [aws_security_group.data_sg.id]
+  storage_encrypted       = true
+  skip_final_snapshot     = true 
+  tags = { Name = "${var.proyecto}-${var.ambiente}-aurora-cluster", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+}
+
+resource "aws_rds_cluster_instance" "aurora_instances" {
+  count                = 2
+  identifier           = "${var.proyecto}-${var.ambiente}-aurora-instance-${count.index + 1}"
+  cluster_identifier   = aws_rds_cluster.aurora_cluster.id
+  instance_class       = var.db_instance_class
+  engine               = aws_rds_cluster.aurora_cluster.engine
+  engine_version       = aws_rds_cluster.aurora_cluster.engine_version
+  db_subnet_group_name = aws_db_subnet_group.aurora_subnet_group.name
+  tags = { Name = "${var.proyecto}-${var.ambiente}-aurora-instance-${count.index + 1}", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+}
