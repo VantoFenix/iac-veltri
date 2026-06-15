@@ -1,0 +1,48 @@
+name: "Docker Build and Push to ECR"
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    # Opcional: filtrar por cambios en el código
+    # paths:
+    #   - 'app/**'
+    #   - 'Dockerfile'
+
+jobs:
+  docker:
+    name: "Build and Push Image to ECR"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Configurar AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1 # Cambiar por la región de tu ECR
+
+      # Iniciar sesión en ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Construir y Pushear la imagen usando comandos Docker
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: nombre-de-tu-repo-ecr # ¡CAMBIAR ESTO AL NOMBRE REAL DEL ECR!
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Asegúrate de que el path del Dockerfile ('.') es correcto
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          # Etiquetar la imagen como "latest"
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
