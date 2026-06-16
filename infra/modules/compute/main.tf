@@ -205,7 +205,7 @@ resource "aws_iam_role_policy" "ec2_ecr" {
         Sid      = "ECRAuth"
         Effect   = "Allow"
         Action   = ["ecr:GetAuthorizationToken"]
-        Resource = "*"  # GetAuthorizationToken no admite Resource acotado
+        Resource = "*" # GetAuthorizationToken no admite Resource acotado
       },
       {
         Sid    = "ECRPull"
@@ -318,10 +318,10 @@ resource "aws_lb_target_group" "app" {
 
   health_check {
     enabled             = true
-    path                = var.health_check_path  # "/health" o "/"
+    path                = var.health_check_path # "/health" o "/"
     port                = "traffic-port"
     protocol            = "HTTP"
-    interval            = 30   # cada 30 segundos
+    interval            = 30 # cada 30 segundos
     timeout             = 10
     healthy_threshold   = 2
     unhealthy_threshold = 3
@@ -370,7 +370,7 @@ resource "aws_launch_template" "app" {
   }
 
   network_interfaces {
-    associate_public_ip_address = false  # EC2 sin IP publica, vive en subred privada
+    associate_public_ip_address = false # EC2 sin IP publica, vive en subred privada
     security_groups             = [aws_security_group.ec2.id]
     delete_on_termination       = true
   }
@@ -519,7 +519,7 @@ resource "aws_autoscaling_policy" "scale_out" {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
-    target_value     = var.scale_out_cpu_threshold  # 75
+    target_value     = var.scale_out_cpu_threshold # 75
     disable_scale_in = true
   }
 }
@@ -531,7 +531,7 @@ resource "aws_autoscaling_policy" "scale_in" {
   policy_type            = "SimpleScaling"
   adjustment_type        = "ChangeInCapacity"
   scaling_adjustment     = -1
-  cooldown               = 900  # 15 minutos
+  cooldown               = 900 # 15 minutos
 }
 
 resource "aws_cloudwatch_metric_alarm" "cpu_low" {
@@ -543,7 +543,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_low" {
   namespace           = "AWS/EC2"
   period              = 300
   statistic           = "Average"
-  threshold           = var.scale_in_cpu_threshold  # 30
+  threshold           = var.scale_in_cpu_threshold # 30
 
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.app.name
