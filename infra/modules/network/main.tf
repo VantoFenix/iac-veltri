@@ -10,6 +10,23 @@ resource "aws_vpc" "main" {
   }
 }
 
+# SOLUCION CKV2_AWS_12 — Bloquear el Security Group por defecto de la VPC
+
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.main.id
+
+  ingress = []
+  egress  = []
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-sg-default-restringido"
+    Modulo     = "network"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+
 # 2. Internet Gateway (Para dar salida a internet)
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
