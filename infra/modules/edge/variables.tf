@@ -7,3 +7,12 @@ variable "ambiente" {
   description = "Entorno de ejecucion (develop, staging, main)"
   type        = string
 }
+variable "vpc_id" {
+  description = "ID de la VPC inyectada por el orquestador."
+  type        = string
+}
+
+variable "private_subnets_compute" {
+  description = "IDs de las subredes privadas inyectadas por el orquestador."
+  type        = list(string)
+}
