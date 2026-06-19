@@ -71,11 +71,10 @@ variable "health_check_path" {
 # -----------------------------------------------------------------------------
 
 variable "db_secret_name_suffix" {
-  description = "Sufijo del nombre del secreto de credenciales de BD creado por el modulo data. El nombre final sera '${var.proyecto}-${var.ambiente}-<sufijo>'."
+  description = "Sufijo del nombre del secreto de credenciales de BD creado por el modulo data. El nombre final sera [proyecto]-[ambiente]-[sufijo]."
   type        = string
   default     = "db-credentials"
 }
-
 # -----------------------------------------------------------------------------
 # Configuracion de instancias EC2
 # -----------------------------------------------------------------------------
