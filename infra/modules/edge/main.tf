@@ -3,7 +3,7 @@
 # ---------------------------------------------------------
 resource "aws_wafv2_web_acl" "edge_waf" {
   name        = "${var.proyecto}-${var.ambiente}-waf"
-  description = "WAF para la capa de borde (CloudFront)"
+  description = "WAF para la capa de borde CloudFront"
   scope       = "CLOUDFRONT"
 
   default_action {
