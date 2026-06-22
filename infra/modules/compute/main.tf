@@ -114,7 +114,7 @@ resource "aws_security_group" "ec2" {
 
 resource "aws_ecr_repository" "app" {
   name                 = "${var.proyecto}-${var.ambiente}-ecr-app"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
   force_delete         = true   
   image_scanning_configuration {
     scan_on_push = true
