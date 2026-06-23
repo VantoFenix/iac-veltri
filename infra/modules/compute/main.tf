@@ -377,6 +377,7 @@ resource "aws_lb_listener" "http" {
 # El user-data arranca el contenedor Docker leyendo credenciales de Secrets Manager.
 # =============================================================================
 
+# Buscar la Golden AMI creada por Packer (puede no existir aún)
 data "aws_ami" "golden" {
   most_recent = true
   owners      = ["self"]
@@ -387,11 +388,37 @@ data "aws_ami" "golden" {
   }
 }
 
+# Fallback: Amazon Linux 2023 base (se usa si aún no se ha corrido Packer)
+data "aws_ami" "amazon_linux_fallback" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023.*-x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+locals {
+  # Usa la Golden AMI si existe, si no cae al Amazon Linux 2023 base
+  ami_id = try(data.aws_ami.golden.id, data.aws_ami.amazon_linux_fallback.id)
+}
+
 resource "aws_launch_template" "app" {
   name        = "${var.proyecto}-${var.ambiente}-lt-app"
   description = "Launch Template - instancias EC2 backend Veltri Minimarket"
 
-  image_id      = data.aws_ami.golden.id
+  image_id      = local.ami_id
   instance_type = var.instance_type
 
   iam_instance_profile {
