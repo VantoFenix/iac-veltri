@@ -32,7 +32,7 @@ variable "db_engine" {
 variable "db_engine_version" {
   description = "Versión del motor de base de datos"
   type        = string
-  default     = "8.0.mysql_aurora.3.04.1"
+  default     = "8.0.mysql_aurora.3.10.3"
 }
 
 variable "db_instance_class" {

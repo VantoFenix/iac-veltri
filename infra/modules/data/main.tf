@@ -67,6 +67,10 @@ resource "aws_rds_cluster" "aurora_cluster" {
   storage_encrypted      = true
   skip_final_snapshot    = true
   tags                   = { Name = "${var.proyecto}-${var.ambiente}-aurora-cluster", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+
+  lifecycle {
+    ignore_changes = [engine_version]
+  }
 }
 
 resource "aws_rds_cluster_instance" "aurora_instances" {
@@ -78,6 +82,10 @@ resource "aws_rds_cluster_instance" "aurora_instances" {
   engine_version       = aws_rds_cluster.aurora_cluster.engine_version
   db_subnet_group_name = aws_db_subnet_group.aurora_subnet_group.name
   tags                 = { Name = "${var.proyecto}-${var.ambiente}-aurora-instance-${count.index + 1}", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+
+  lifecycle {
+    ignore_changes = [engine_version]
+  }
 }
 
 resource "aws_elasticache_replication_group" "redis_cluster" {
