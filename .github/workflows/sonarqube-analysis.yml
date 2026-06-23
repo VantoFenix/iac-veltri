@@ -28,11 +28,53 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Limpiar reporte de caracteres ocultos
-        run: sed -i 's/\r//g' .scannerwork/report-task.txt
-
       - name: Verificar Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          echo "=== Contenido del reporte ==="
+          cat .scannerwork/report-task.txt
+
+          CE_TASK_ID=$(grep '^ceTaskId=' .scannerwork/report-task.txt | cut -d'=' -f2 | tr -d '[:space:]')
+          SERVER_URL=$(grep '^serverUrl=' .scannerwork/report-task.txt | cut -d'=' -f2 | tr -d '[:space:]')
+
+          echo "Task ID: $CE_TASK_ID"
+          echo "Server URL: $SERVER_URL"
+
+          # Esperar a que la tarea termine en SonarCloud
+          for i in $(seq 1 60); do
+            echo "Intento $i: consultando estado de la tarea..."
+            RESPONSE=$(curl -sf -u "${SONAR_TOKEN}:" "${SERVER_URL}/api/ce/task?id=${CE_TASK_ID}")
+            STATUS=$(echo "$RESPONSE" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+            echo "Estado: $STATUS"
+
+            if [ "$STATUS" = "SUCCESS" ]; then
+              ANALYSIS_ID=$(echo "$RESPONSE" | grep -o '"analysisId":"[^"]*"' | cut -d'"' -f4)
+              echo "Analysis ID: $ANALYSIS_ID"
+              break
+            elif [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELLED" ]; then
+              echo "La tarea de análisis falló con estado: $STATUS"
+              exit 1
+            fi
+            sleep 5
+          done
+
+          if [ -z "$ANALYSIS_ID" ]; then
+            echo "Timeout: la tarea no terminó en 5 minutos"
+            exit 1
+          fi
+
+          # Consultar el Quality Gate
+          echo "=== Consultando Quality Gate ==="
+          QG_RESPONSE=$(curl -sf -u "${SONAR_TOKEN}:" "${SERVER_URL}/api/qualitygates/project_status?analysisId=${ANALYSIS_ID}")
+          echo "Respuesta: $QG_RESPONSE"
+
+          QG_STATUS=$(echo "$QG_RESPONSE" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "Quality Gate Status: $QG_STATUS"
+
+          if [ "$QG_STATUS" != "OK" ]; then
+            echo "Quality Gate FALLIDO: $QG_STATUS"
+            exit 1
+          fi
+
+          echo "Quality Gate PASADO OK"
