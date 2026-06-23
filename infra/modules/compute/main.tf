@@ -72,7 +72,6 @@ resource "aws_security_group" "alb" {
 # =============================================================================
 # Solo acepta tráfico proveniente del Security Group del ALB.
 # Principio de menor privilegio: nadie más puede hablarle a las EC2.
-# Este SG ID se exporta como output para que Josué (módulo data) lo use
 # en las reglas de entrada de Aurora y ElastiCache.
 # =============================================================================
 
@@ -115,7 +114,7 @@ resource "aws_security_group" "ec2" {
 resource "aws_ecr_repository" "app" {
   name                 = "${var.proyecto}-${var.ambiente}-ecr-app"
   image_tag_mutability = "MUTABLE"
-  force_delete         = true   
+  force_delete         = true
   image_scanning_configuration {
     scan_on_push = true
   }
@@ -268,7 +267,10 @@ resource "aws_iam_role_policy" "ec2_cloudwatch" {
   })
 }
 
+
+# =============================================================================
 # Instance Profile — conecta el rol IAM con la instancia EC2
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "${var.proyecto}-${var.ambiente}-profile-ec2"
   role = aws_iam_role.ec2.name
@@ -281,6 +283,23 @@ resource "aws_iam_instance_profile" "ec2" {
   }
 }
 
+#CAMBIOS. 
+
+# =============================================================================
+# CLOUDWATCH LOG GROUP
+# =============================================================================
+
+resource "aws_cloudwatch_log_group" "app_logs" {
+  name              = "/aws/ec2/${var.proyecto}-${var.ambiente}"
+  retention_in_days = 30
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-logs"
+    Modulo     = "compute"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
 
 # =============================================================================
 # 5. ALB — Application Load Balancer (público)
@@ -553,6 +572,31 @@ resource "aws_cloudwatch_metric_alarm" "cpu_low" {
 
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-alarm-cpu-low"
+    Modulo     = "compute"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+#CAMBIOS
+
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name          = "${var.proyecto}-${var.ambiente}-alarm-cpu-high"
+  alarm_description   = "CPU promedio > 80% durante 10 minutos"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 80
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.app.name
+  }
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-alarm-cpu-high"
     Modulo     = "compute"
     Ambiente   = var.ambiente
     Gestionado = "Terraform"
