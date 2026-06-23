@@ -15,3 +15,9 @@ variable "ambiente" {
   type        = string
   default     = "dev"
 }
+
+variable "domain_name" {
+  description = "Nombre de dominio principal para el minimarket"
+  type        = string
+  default     = "veltri-minimarket.com"
+}
