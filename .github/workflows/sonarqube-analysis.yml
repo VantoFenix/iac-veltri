@@ -28,19 +28,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Debug Quality Gate
+      - name: Verificar Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          cat .scannerwork/report-task.txt
-          CE_TASK_ID=$(grep 'ceTaskId' .scannerwork/report-task.txt | cut -d'=' -f2)
-          SERVER_URL=$(grep 'serverUrl' .scannerwork/report-task.txt | cut -d'=' -f2)
-          
-          # Limpiar posibles slashes dobles
-          SERVER_URL=$(echo $SERVER_URL | sed 's/\/$//')
-          
-          URL="${SERVER_URL}/api/ce/task?id=${CE_TASK_ID}"
-          echo "URL a consultar: $URL"
-          
-          # Hacemos la petición con -v para ver los headers de respuesta exactos
-          curl -v -u "${SONAR_TOKEN}:" "$URL"
