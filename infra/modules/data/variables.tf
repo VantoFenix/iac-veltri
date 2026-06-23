@@ -38,7 +38,7 @@ variable "db_engine_version" {
 variable "db_instance_class" {
   description = "Clase de instancia para Aurora"
   type        = string
-  default     = "db.t3.small"
+  default     = "db.t4g.medium"
 }
 
 variable "redis_node_type" {
