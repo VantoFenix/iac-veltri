@@ -80,9 +80,9 @@ variable "db_secret_name_suffix" {
 # -----------------------------------------------------------------------------
 
 variable "ami_id" {
-  description = "AMI de Amazon Linux 2023 con soporte para Docker. Debe corresponder a la region us-east-1."
+  description = "ID de la Golden AMI generada por Packer. Si se deja vacio, usa Amazon Linux 2023 base automaticamente."
   type        = string
-  default     = "ami-0c02fb55956c7d316"
+  default     = ""
 }
 
 variable "instance_type" {
