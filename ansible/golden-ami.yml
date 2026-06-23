@@ -1,0 +1,8 @@
+---
+- name: Prepare Golden AMI for Veltri Minimarket
+  hosts: default
+  become: yes
+  roles:
+    - os_base
+    - docker
+    - cloudwatch

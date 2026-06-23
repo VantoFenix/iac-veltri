@@ -373,15 +373,25 @@ resource "aws_lb_listener" "http" {
 # =============================================================================
 # 6. LAUNCH TEMPLATE — Plantilla de instancias EC2
 # =============================================================================
-# Define el "molde" de cada instancia: AMI, tipo, red, disco y user-data
-# que arranca el contenedor Docker leyendo credenciales desde Secrets Manager.
+# Define el "molde" de cada instancia: usa la Golden AMI creada con Packer.
+# El user-data arranca el contenedor Docker leyendo credenciales de Secrets Manager.
 # =============================================================================
+
+data "aws_ami" "golden" {
+  most_recent = true
+  owners      = ["self"]
+
+  filter {
+    name   = "name"
+    values = ["veltri-app-golden-ami-*"]
+  }
+}
 
 resource "aws_launch_template" "app" {
   name        = "${var.proyecto}-${var.ambiente}-lt-app"
   description = "Launch Template - instancias EC2 backend Veltri Minimarket"
 
-  image_id      = var.ami_id
+  image_id      = data.aws_ami.golden.id
   instance_type = var.instance_type
 
   iam_instance_profile {
@@ -414,10 +424,7 @@ resource "aws_launch_template" "app" {
     #!/bin/bash
     set -e
 
-    yum update -y
-    yum install -y docker aws-cli jq
-    systemctl start docker
-    systemctl enable docker
+    # Docker, AWS CLI y jq ya estan instalados en la Golden AMI generada por Packer/Ansible
 
     # Autenticacion con ECR via rol IAM (sin credenciales fijas)
     aws ecr get-login-password --region ${var.aws_region} | \

@@ -1,0 +1,10 @@
+---
+- name: Install Amazon CloudWatch Agent
+  yum:
+    name: amazon-cloudwatch-agent
+    state: present
+
+- name: Ensure CloudWatch Agent is enabled to start on boot
+  systemd:
+    name: amazon-cloudwatch-agent
+    enabled: yes
