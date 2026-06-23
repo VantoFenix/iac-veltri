@@ -28,6 +28,9 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
+      - name: Limpiar reporte de caracteres ocultos
+        run: sed -i 's/\r//g' .scannerwork/report-task.txt
+
       - name: Verificar Quality Gate
         uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
