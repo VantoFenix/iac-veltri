@@ -1,3 +1,13 @@
+output "cloudfront_domain_name" {
+  value       = aws_cloudfront_distribution.cdn.domain_name
+  description = "Domain name de CloudFront para Route 53"
+}
+
+output "cloudfront_hosted_zone_id" {
+  value       = aws_cloudfront_distribution.cdn.hosted_zone_id
+  description = "Hosted Zone ID de CloudFront para el alias de Route 53"
+}
+
 output "cloudfront_url" {
   value       = aws_cloudfront_distribution.cdn.domain_name
   description = "URL de la distribucion CloudFront"

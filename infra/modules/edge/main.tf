@@ -160,7 +160,7 @@ resource "aws_api_gateway_integration" "alb_proxy" {
   resource_id             = aws_api_gateway_resource.proxy.id
   http_method             = aws_api_gateway_method.proxy_any.http_method
   type                    = "HTTP_PROXY"
-  integration_http_method = "ANY"
+  integration_http_method = "POST"
 
   # Usamos HTTP en el puerto 80 ya que el ALB público escucha allí y hace forward al Target Group
   uri = "http://${var.alb_dns_name}/{proxy}"

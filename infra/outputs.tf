@@ -32,3 +32,8 @@ output "api_gateway_invoke_url" {
   value       = module.edge.api_gateway_invoke_url
   description = "URL publica del API Gateway"
 }
+
+output "dns_nameservers" {
+  value       = module.dns.nameservers
+  description = "Nameservers de Route 53. Configurar en el registrador del dominio."
+}
