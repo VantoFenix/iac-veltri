@@ -96,6 +96,7 @@ resource "aws_nat_gateway" "nat_gw_2" {
 }
 
 # 7 Tablas de Enrutamiento Publicas
+
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   route {
@@ -114,7 +115,63 @@ resource "aws_route_table_association" "pub_2" {
   subnet_id      = aws_subnet.public_2.id
   route_table_id = aws_route_table.public.id
 }
+
+# 7.1 Route Table Privada - Compute
+
+resource "aws_route_table" "private_compute" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_gw_1.id
+  }
+
+  tags = {
+    Name = "${var.proyecto}-${var.ambiente}-private-compute-rt"
+  }
+}
+
+# Asociaciones Compute
+
+resource "aws_route_table_association" "private_compute_3" {
+  subnet_id      = aws_subnet.private_3_compute.id
+  route_table_id = aws_route_table.private_compute.id
+}
+
+resource "aws_route_table_association" "private_compute_4" {
+  subnet_id      = aws_subnet.private_4_compute.id
+  route_table_id = aws_route_table.private_compute.id
+}
+
+# Route Table Privada - Data
+
+resource "aws_route_table" "private_data" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_gw_2.id
+  }
+
+  tags = {
+    Name = "${var.proyecto}-${var.ambiente}-private-data-rt"
+  }
+}
+
+# Asociaciones Data
+
+resource "aws_route_table_association" "private_data_5" {
+  subnet_id      = aws_subnet.private_5_data.id
+  route_table_id = aws_route_table.private_data.id
+}
+
+resource "aws_route_table_association" "private_data_6" {
+  subnet_id      = aws_subnet.private_6_data.id
+  route_table_id = aws_route_table.private_data.id
+}
+
 # 8 API Gateway (Punto de entrada regional)
+
 resource "aws_api_gateway_rest_api" "api" {
   name        = "${var.proyecto}-${var.ambiente}-api"
   description = "API Gateway para el flujo dinamico"
