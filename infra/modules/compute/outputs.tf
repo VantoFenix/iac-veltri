@@ -23,6 +23,11 @@ output "alb_dns_name" {
   value       = aws_lb.main.dns_name
 }
 
+output "alb_zone_id" {
+  description = "Zone ID del Application Load Balancer. Requerido por Route 53."
+  value       = aws_lb.main.zone_id
+}
+
 # -----------------------------------------------------------------------------
 # ADICIONALES — utiles para el pipeline CI/CD de Tiago y para info.md
 # -----------------------------------------------------------------------------

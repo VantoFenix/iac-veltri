@@ -79,8 +79,20 @@ resource "aws_cloudfront_distribution" "cdn" {
 # ---------------------------------------------------------
 # SQS Queue (Procesamiento asíncrono)
 # ---------------------------------------------------------
+resource "aws_sqs_queue" "async_queue_dlq" {
+  name                      = "${var.proyecto}-${var.ambiente}-async-queue-dlq"
+  message_retention_seconds = 1209600 # 14 dias
+}
+
 resource "aws_sqs_queue" "async_queue" {
-  name = "${var.proyecto}-${var.ambiente}-async-queue"
+  name                       = "${var.proyecto}-${var.ambiente}-async-queue"
+  message_retention_seconds  = 86400 # 1 dia
+  visibility_timeout_seconds = 300   # 5 minutos
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.async_queue_dlq.arn
+    maxReceiveCount     = 3
+  })
 }
 
 # ---------------------------------------------------------
@@ -117,4 +129,50 @@ resource "aws_lambda_function" "edge_processor" {
   handler          = "index.lambda_handler"
   runtime          = "python3.9"
   source_code_hash = data.archive_file.dummy_lambda.output_base64sha256
+}
+
+# ---------------------------------------------------------
+# API Gateway (REST API con integración HTTP_PROXY hacia el ALB)
+# ---------------------------------------------------------
+resource "aws_api_gateway_rest_api" "api" {
+  name        = "${var.proyecto}-${var.ambiente}-api"
+  description = "API Gateway regional apuntando al Application Load Balancer"
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+}
+
+resource "aws_api_gateway_resource" "proxy" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "{proxy+}"
+}
+
+resource "aws_api_gateway_method" "proxy_any" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.proxy.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "alb_proxy" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.proxy.id
+  http_method             = aws_api_gateway_method.proxy_any.http_method
+  type                    = "HTTP_PROXY"
+  integration_http_method = "ANY"
+
+  # Usamos HTTP en el puerto 80 ya que el ALB público escucha allí y hace forward al Target Group
+  uri = "http://${var.alb_dns_name}/{proxy}"
+}
+
+resource "aws_api_gateway_deployment" "api_deploy" {
+  depends_on  = [aws_api_gateway_integration.alb_proxy]
+  rest_api_id = aws_api_gateway_rest_api.api.id
+}
+
+resource "aws_api_gateway_stage" "api_stage" {
+  deployment_id = aws_api_gateway_deployment.api_deploy.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  stage_name    = var.ambiente
 }

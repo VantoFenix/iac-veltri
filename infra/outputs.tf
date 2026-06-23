@@ -27,3 +27,8 @@ output "edge_waf_web_acl_id" {
   value       = module.edge.waf_web_acl_id
   description = "ID del Web ACL de WAF"
 }
+
+output "api_gateway_invoke_url" {
+  value       = module.edge.api_gateway_invoke_url
+  description = "URL publica del API Gateway"
+}

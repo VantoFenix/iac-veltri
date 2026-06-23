@@ -16,3 +16,8 @@ variable "private_subnets_compute" {
   description = "IDs de las subredes privadas inyectadas por el orquestador."
   type        = list(string)
 }
+
+variable "alb_dns_name" {
+  description = "DNS Name del Application Load Balancer para integrarlo con el API Gateway."
+  type        = string
+}

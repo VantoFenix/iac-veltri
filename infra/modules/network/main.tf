@@ -10,7 +10,7 @@ resource "aws_vpc" "main" {
   }
 }
 
-# SOLUCION CKV2_AWS_12 — Bloquear el Security Group por defecto de la VPC
+# SOLUCION CKV2_AWS_12 â€” Bloquear el Security Group por defecto de la VPC
 
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
@@ -168,18 +168,4 @@ resource "aws_route_table_association" "private_data_5" {
 resource "aws_route_table_association" "private_data_6" {
   subnet_id      = aws_subnet.private_6_data.id
   route_table_id = aws_route_table.private_data.id
-}
-
-# 8 API Gateway (Punto de entrada regional)
-
-resource "aws_api_gateway_rest_api" "api" {
-  name        = "${var.proyecto}-${var.ambiente}-api"
-  description = "API Gateway para el flujo dinamico"
-  endpoint_configuration {
-    types = ["REGIONAL"]
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }

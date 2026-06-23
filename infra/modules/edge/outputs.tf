@@ -22,3 +22,8 @@ output "waf_web_acl_id" {
   value       = aws_wafv2_web_acl.edge_waf.id
   description = "ID de la Web ACL del WAF"
 }
+
+output "api_gateway_invoke_url" {
+  value       = aws_api_gateway_stage.api_stage.invoke_url
+  description = "URL publica del API Gateway"
+}
