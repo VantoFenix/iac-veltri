@@ -69,10 +69,10 @@ jobs:
           QG_RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" "${SERVER_URL}/api/qualitygates/project_status?analysisId=${ANALYSIS_ID}")
           echo "Respuesta: $QG_RESPONSE"
 
-          # Si la respuesta contiene error (ej: plan free no soporta branches via API)
+          # Si la respuesta contiene error (plan Free de SonarCloud no permite consultar Quality Gate via API)
           if echo "$QG_RESPONSE" | grep -q '"errors"'; then
-            echo "⚠️ ADVERTENCIA: SonarCloud no pudo devolver el Quality Gate (posiblemente plan Free + rama secundaria)."
-            echo "El análisis fue exitoso. Revisa el resultado en: ${SERVER_URL}/dashboard?id=vantofenix_iac-veltri&branch=develop"
+            echo "⚠️ ADVERTENCIA: SonarCloud (plan Free) no permite consultar el Quality Gate via API."
+            echo "El análisis fue exitoso. Revisa el resultado en el dashboard de SonarCloud."
             exit 0
           fi
 
