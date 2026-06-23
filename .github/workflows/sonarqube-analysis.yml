@@ -33,4 +33,4 @@ jobs:
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: "https://sonarcloud.io" # NO DEBE BUSCAR EN HOST, TODO ES EN CLOUD
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
