@@ -52,11 +52,11 @@ resource "aws_security_group" "alb" {
   }
 
   egress {
-    description = "Salida hacia las instancias EC2"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    description = "Salida hacia las instancias EC2 en subnets privadas"
+    from_port   = var.app_port
+    to_port     = var.app_port
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/8"] #Rango privado RFC-1918
   }
 
   tags = {
