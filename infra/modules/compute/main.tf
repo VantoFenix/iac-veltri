@@ -340,6 +340,9 @@ resource "aws_lb" "main" {
 
   enable_deletion_protection = var.enable_deletion_protection
 
+  # AÑADIDO PARA CKV_AWS_131 (Commit 2):
+  drop_invalid_header_fields = true
+
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-alb"
     Modulo     = "compute"
