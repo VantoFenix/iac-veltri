@@ -42,6 +42,7 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  #checkov:skip=CKV_AWS_260:ALB publico de Veltri Minimarket requiere HTTP para redirigir a HTTPS
   ingress {
     description = "HTTP desde internet (redirige a HTTPS)"
     from_port   = 80
