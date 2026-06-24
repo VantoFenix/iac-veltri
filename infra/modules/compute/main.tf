@@ -286,12 +286,31 @@ resource "aws_iam_instance_profile" "ec2" {
 #CAMBIOS. 
 
 # =============================================================================
+# KMS KEY — Llave de encriptación para los logs de CloudWatch
+# =============================================================================
+resource "aws_kms_key" "cw_kms_key" {
+  description             = "Llave KMS para encriptar CloudWatch Logs del modulo compute"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-kms-cw"
+    Modulo     = "compute"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+# =============================================================================
 # CLOUDWATCH LOG GROUP
 # =============================================================================
 
 resource "aws_cloudwatch_log_group" "app_logs" {
   name              = "/aws/ec2/${var.proyecto}-${var.ambiente}"
   retention_in_days = 30
+
+  # Aquí llamas al ARN de la llave que acabas de crear arriba
+  kms_key_id = aws_kms_key.cw_kms_key.arn
 
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-logs"

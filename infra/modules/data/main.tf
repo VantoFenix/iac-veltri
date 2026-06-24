@@ -44,7 +44,7 @@ resource "random_password" "db_password" {
 resource "aws_secretsmanager_secret" "db_credentials" {
   name                    = "${var.proyecto}-${var.ambiente}-db-creds-v2"
   recovery_window_in_days = 0
-  tags = { Name = "${var.proyecto}-${var.ambiente}-db-creds-v2", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+  tags                    = { Name = "${var.proyecto}-${var.ambiente}-db-creds-v2", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials_version" {
