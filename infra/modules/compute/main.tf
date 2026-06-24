@@ -493,6 +493,12 @@ resource "aws_launch_template" "app" {
     enabled = true
   }
 
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
   # User data: instala Docker, autentica con ECR via rol IAM,
   # descarga la imagen y lee credenciales de Secrets Manager.
   user_data = base64encode(<<-EOF
