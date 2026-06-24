@@ -340,6 +340,13 @@ resource "aws_lb" "main" {
 
   enable_deletion_protection = true
 
+  # AÑADIDO PARA CKV_AWS_91 (Commit 4):
+  access_logs {
+    enabled = true
+    bucket  = "${var.proyecto}-${var.ambiente}-alb-logs" # Nombre del bucket donde se guardarán
+    prefix  = "alb-logs"
+  }
+
   # AÑADIDO PARA CKV_AWS_131 (Commit 2):
   drop_invalid_header_fields = true
 
