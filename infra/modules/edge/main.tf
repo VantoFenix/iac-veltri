@@ -1,6 +1,6 @@
-# ---------------------------------------------------------
+
 # AWS WAFv2 Web ACL (Scope CLOUDFRONT)
-# ---------------------------------------------------------
+
 resource "aws_wafv2_web_acl" "edge_waf" {
   name        = "${var.proyecto}-${var.ambiente}-waf"
   description = "WAF para la capa de borde CloudFront"
@@ -11,28 +11,29 @@ resource "aws_wafv2_web_acl" "edge_waf" {
   }
 
   rule {
-    name       = "AWSManagedRulesCommon"
-    priority   = 1
+    name     = "AWSManagedRulesCommon"
+    priority = 1
 
-    override action {
+  
+    override_action {
       none {}
     }
   
-  Statement {
-    managed_rule_group_statement {
-      name         = "AWSManagedRulesCommonRuleSet"
-      vendor_name  = "AWS"
+    
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
     }
-  }
 
-  visibility_config {
+    visibility_config {
       cloudwatch_metrics_enabled = true
       metric_name                = "${var.proyecto}-${var.ambiente}-waf-common-rules"
       sampled_requests_enabled   = true
     }
   }
   
-
   rule {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
     priority = 2
@@ -41,17 +42,17 @@ resource "aws_wafv2_web_acl" "edge_waf" {
       none {}
     }
 
-  statement {
-    managed_rule_group_statement {
-      name        = "AWSManagedRulesKnownBadInputsRuleSet"
-      vendor_name = "AWS"
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
     }
-  }
 
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "${var.proyecto}-${var.ambiente}-waf-bad-inputs"
-    sampled_requests_enabled   = true
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.proyecto}-${var.ambiente}-waf-bad-inputs"
+      sampled_requests_enabled   = true
     }
   }
 
