@@ -82,9 +82,10 @@ resource "aws_s3_bucket" "cf_logs" {
   bucket = "${var.proyecto}-${var.ambiente}-cf-logs-${random_id.bucket_id.hex}"
 }
 
-# ---------------------------------------------------------
+
 # CloudFront Distribution
-# ---------------------------------------------------------
+
+# checkov:skip=CKV_AWS_174: Se usa el certificado por defecto de CloudFront (el cual no permite forzar TLS 1.2) por no contar con un dominio personalizado
 resource "aws_cloudfront_distribution" "cdn" {
   origin {
     domain_name = aws_s3_bucket.edge_origin.bucket_regional_domain_name
