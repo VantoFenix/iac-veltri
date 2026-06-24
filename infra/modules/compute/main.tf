@@ -338,7 +338,7 @@ resource "aws_lb" "main" {
   subnets         = var.public_subnets
   security_groups = [aws_security_group.alb.id]
 
-  enable_deletion_protection = var.enable_deletion_protection
+  enable_deletion_protection = true
 
   # AÑADIDO PARA CKV_AWS_131 (Commit 2):
   drop_invalid_header_fields = true
