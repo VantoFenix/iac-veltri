@@ -265,6 +265,7 @@ resource "aws_iam_role_policy" "ec2_secrets" {
 }
 
 # Permiso: logs y métricas hacia CloudWatch
+
 resource "aws_iam_role_policy" "ec2_cloudwatch" {
   name = "${var.proyecto}-${var.ambiente}-policy-ec2-cloudwatch"
   role = aws_iam_role.ec2.id
@@ -273,20 +274,28 @@ resource "aws_iam_role_policy" "ec2_cloudwatch" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "CloudWatchLogsMetrics"
-        Effect = "Allow"
-        Action = [
-          "cloudwatch:PutMetricData",
+        Sid      = "CloudWatchMetrics"
+        Effect   = "Allow"
+        Action   = "cloudwatch:PutMetricData"
+        Resource = "*" 
+      },
+      {
+        Sid      = "CloudWatchLogs"
+        Effect   = "Allow"
+        Action   = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*"
+    
+        Resource = [
+          "arn:aws:logs:*:*:log-group:*",
+          "arn:aws:logs:*:*:log-group:*:log-stream:*"
+        ]
       }
     ]
   })
 }
-
 
 # =============================================================================
 # Instance Profile — conecta el rol IAM con la instancia EC2
