@@ -315,12 +315,31 @@ resource "aws_iam_instance_profile" "ec2" {
 #CAMBIOS. 
 
 # =============================================================================
+# KMS KEY — Llave de encriptación para los logs de CloudWatch
+# =============================================================================
+resource "aws_kms_key" "cw_kms_key" {
+  description             = "Llave KMS para encriptar CloudWatch Logs del modulo compute"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-kms-cw"
+    Modulo     = "compute"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+# =============================================================================
 # CLOUDWATCH LOG GROUP
 # =============================================================================
 
 resource "aws_cloudwatch_log_group" "app_logs" {
   name              = "/aws/ec2/${var.proyecto}-${var.ambiente}"
   retention_in_days = 365
+
+  # Aquí llamas al ARN de la llave que acabas de crear arriba
+  kms_key_id = aws_kms_key.cw_kms_key.arn
 
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-logs"
@@ -348,7 +367,17 @@ resource "aws_lb" "main" {
   subnets         = var.public_subnets
   security_groups = [aws_security_group.alb.id]
 
-  enable_deletion_protection = var.enable_deletion_protection
+  enable_deletion_protection = true
+
+  # AÑADIDO PARA CKV_AWS_91 (Commit 4):
+  access_logs {
+    enabled = true
+    bucket  = "${var.proyecto}-${var.ambiente}-alb-logs" # Nombre del bucket donde se guardarán
+    prefix  = "alb-logs"
+  }
+
+  # AÑADIDO PARA CKV_AWS_131 (Commit 2):
+  drop_invalid_header_fields = true
 
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-alb"
