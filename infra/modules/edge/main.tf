@@ -70,12 +70,16 @@ resource "random_id" "bucket_id" {
   byte_length = 4
 }
 
-resource "aws_s3_bucket" "edge_origin" {
+resource "aws_s3_bucket" "edge_origin" {  
   bucket = "${var.proyecto}-${var.ambiente}-cf-origin-${random_id.bucket_id.hex}"
 }
 
 locals {
   s3_origin_id = "S3Origin-${aws_s3_bucket.edge_origin.id}"
+}
+
+resource "aws_s3_bucket" "cf_logs" {
+  bucket = "${var.proyecto}-${var.ambiente}-cf-logs-${random_id.bucket_id.hex}"
 }
 
 # ---------------------------------------------------------
@@ -92,6 +96,13 @@ resource "aws_cloudfront_distribution" "cdn" {
   default_root_object = "index.html"
 
   web_acl_id = aws_wafv2_web_acl.edge_waf.arn
+
+ logging_config {
+    include_cookies = false
+    bucket          = aws_s3_bucket.cf_logs.bucket_domain_name
+    prefix          = "cf-logs/"
+  }
+
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
