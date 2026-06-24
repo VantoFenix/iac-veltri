@@ -320,7 +320,7 @@ resource "aws_iam_instance_profile" "ec2" {
 
 resource "aws_cloudwatch_log_group" "app_logs" {
   name              = "/aws/ec2/${var.proyecto}-${var.ambiente}"
-  retention_in_days = 30
+  retention_in_days = 365
 
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-logs"
