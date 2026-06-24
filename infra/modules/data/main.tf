@@ -16,22 +16,25 @@ resource "aws_security_group" "data_sg" {
   vpc_id      = var.vpc_id
 
   ingress {
+    description     = "Acceso a Aurora desde la capa de computo"
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
     security_groups = [var.security_group_compute_id]
   }
   ingress {
+    description     = "Acceso a Redis desde la capa de computo"
     from_port       = 6379
     to_port         = 6379
     protocol        = "tcp"
     security_groups = [var.security_group_compute_id]
   }
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "Salida restringida al Security Group de computo"
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [var.security_group_compute_id]
   }
   tags = { Name = "${var.proyecto}-${var.ambiente}-data-sg", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 }
@@ -41,10 +44,18 @@ resource "random_password" "db_password" {
   special = false
 }
 
+resource "aws_kms_key" "secrets_key" {
+  description             = "Llave KMS administrada por el cliente para cifrar los secretos de la base de datos"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+  tags                    = { Name = "${var.proyecto}-${var.ambiente}-kms-secrets", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+}
+
 resource "aws_secretsmanager_secret" "db_credentials" {
   name                    = "${var.proyecto}-${var.ambiente}-db-creds-v2"
   recovery_window_in_days = 0
-  tags = { Name = "${var.proyecto}-${var.ambiente}-db-creds-v2", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+  kms_key_id              = aws_kms_key.secrets_key.id
+  tags                    = { Name = "${var.proyecto}-${var.ambiente}-db-creds-v2", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials_version" {
@@ -58,16 +69,17 @@ resource "aws_secretsmanager_secret_version" "db_credentials_version" {
 }
 
 resource "aws_rds_cluster" "aurora_cluster" {
-  cluster_identifier     = "${var.proyecto}-${var.ambiente}-aurora-cluster"
-  engine                 = var.db_engine
-  engine_version         = var.db_engine_version
-  master_username        = jsondecode(aws_secretsmanager_secret_version.db_credentials_version.secret_string)["username"]
-  master_password        = jsondecode(aws_secretsmanager_secret_version.db_credentials_version.secret_string)["password"]
-  db_subnet_group_name   = aws_db_subnet_group.aurora_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.data_sg.id]
-  storage_encrypted      = true
-  skip_final_snapshot    = true
-  tags                   = { Name = "${var.proyecto}-${var.ambiente}-aurora-cluster", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+  cluster_identifier                  = "${var.proyecto}-${var.ambiente}-aurora-cluster"
+  engine                              = var.db_engine
+  engine_version                      = var.db_engine_version
+  master_username                     = jsondecode(aws_secretsmanager_secret_version.db_credentials_version.secret_string)["username"]
+  master_password                     = jsondecode(aws_secretsmanager_secret_version.db_credentials_version.secret_string)["password"]
+  db_subnet_group_name                = aws_db_subnet_group.aurora_subnet_group.name
+  vpc_security_group_ids              = [aws_security_group.data_sg.id]
+  storage_encrypted                   = true
+  skip_final_snapshot                 = true
+  iam_database_authentication_enabled = true
+  tags                                = { Name = "${var.proyecto}-${var.ambiente}-aurora-cluster", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 
   lifecycle {
     ignore_changes = [engine_version]
