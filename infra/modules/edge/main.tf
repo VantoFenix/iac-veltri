@@ -285,3 +285,15 @@ resource "aws_api_gateway_stage" "api_stage" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   stage_name    = var.ambiente
 }
+
+# Crear grupo de logs en CloudWatch para el WAF
+resource "aws_cloudwatch_log_group" "waf_logs" {
+  name              = "aws-waf-logs-${var.proyecto}-${var.ambiente}"
+  retention_in_days = 30 # Ajusta según tu necesidad de retención
+}
+
+#  Habilitar el logging del WAF hacia el grupo de logs
+resource "aws_wafv2_web_acl_logging_configuration" "edge_waf_logging" {
+  resource_arn            = aws_wafv2_web_acl.edge_waf.arn
+  log_destination_configs = [aws_cloudwatch_log_group.waf_logs.arn]
+}
