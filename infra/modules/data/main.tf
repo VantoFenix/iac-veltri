@@ -117,6 +117,18 @@ resource "aws_rds_cluster_instance" "aurora_instances" {
   }
 }
 
+resource "aws_kms_key" "redis" {
+  description             = "KMS key para cifrado de Redis ElastiCache - Veltri Minimarket"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-kms-redis"
+    Modulo     = "data"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
 resource "aws_elasticache_replication_group" "redis_cluster" {
   replication_group_id       = "${var.proyecto}-${var.ambiente}-redis"
   description                = "Cluster de Redis"
@@ -129,6 +141,7 @@ resource "aws_elasticache_replication_group" "redis_cluster" {
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
   auth_token                 = random_password.redis_auth_token.result
+  kms_key_id                 = aws_kms_key.redis.arn
   tags                       = { Name = "${var.proyecto}-${var.ambiente}-redis", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 }
 
