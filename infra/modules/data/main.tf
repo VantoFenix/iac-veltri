@@ -70,6 +70,13 @@ resource "aws_secretsmanager_secret_version" "db_credentials_version" {
   })
 }
 
+resource "aws_kms_key" "rds_key" {
+  description             = "Llave KMS administrada por el cliente para cifrar el cluster RDS"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+  tags                    = { Name = "${var.proyecto}-${var.ambiente}-kms-rds", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+}
+
 resource "aws_rds_cluster" "aurora_cluster" {
   cluster_identifier                  = "${var.proyecto}-${var.ambiente}-aurora-cluster"
   engine                              = var.db_engine
@@ -79,6 +86,7 @@ resource "aws_rds_cluster" "aurora_cluster" {
   db_subnet_group_name                = aws_db_subnet_group.aurora_subnet_group.name
   vpc_security_group_ids              = [aws_security_group.data_sg.id]
   storage_encrypted                   = true
+  kms_key_id                          = aws_kms_key.rds_key.arn
   skip_final_snapshot                 = true
   iam_database_authentication_enabled = true
   tags                                = { Name = "${var.proyecto}-${var.ambiente}-aurora-cluster", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
