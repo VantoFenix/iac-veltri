@@ -89,6 +89,7 @@ resource "aws_rds_cluster" "aurora_cluster" {
   kms_key_id                          = aws_kms_key.rds_key.arn
   skip_final_snapshot                 = true
   iam_database_authentication_enabled = true
+  enabled_cloudwatch_logs_exports     = ["audit", "error", "general", "slowquery"]
   tags                                = { Name = "${var.proyecto}-${var.ambiente}-aurora-cluster", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 
   lifecycle {
