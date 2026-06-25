@@ -54,10 +54,9 @@ resource "aws_kms_key" "secrets_key" {
 resource "aws_secretsmanager_secret" "db_credentials" {
   name                    = "${var.proyecto}-${var.ambiente}-db-creds-v2"
   recovery_window_in_days = 0
-<<<<<<< HEAD
+
   kms_key_id              = aws_kms_key.secrets_key.id
-=======
->>>>>>> feature/josue-fix-seguridad
+
   tags                    = { Name = "${var.proyecto}-${var.ambiente}-db-creds-v2", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 }
 
