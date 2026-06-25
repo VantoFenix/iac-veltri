@@ -86,10 +86,20 @@ resource "aws_s3_bucket" "cf_logs" {
 # CloudFront Distribution
 
 # checkov:skip=CKV_AWS_174: Se usa el certificado por defecto de CloudFront (el cual no permite forzar TLS 1.2) por no contar con un dominio personalizado
+resource "aws_cloudfront_origin_access_control" "oac" {
+  name                              = "${var.proyecto}-${var.ambiente}-oac"
+  description                       = "Acceso seguro desde CloudFront hacia S3"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+# TU DISTRIBUCIÓN ACTUALIZADA
 resource "aws_cloudfront_distribution" "cdn" {
   origin {
-    domain_name = aws_s3_bucket.edge_origin.bucket_regional_domain_name
-    origin_id   = local.s3_origin_id
+    domain_name              = aws_s3_bucket.edge_origin.bucket_regional_domain_name
+    origin_id                = local.s3_origin_id
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id # ✅ FIX: Aquí se enlaza la seguridad
   }
 
   enabled             = true
@@ -98,12 +108,11 @@ resource "aws_cloudfront_distribution" "cdn" {
 
   web_acl_id = aws_wafv2_web_acl.edge_waf.arn
 
- logging_config {
+  logging_config {
     include_cookies = false
     bucket          = aws_s3_bucket.cf_logs.bucket_domain_name
     prefix          = "cf-logs/"
   }
-
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -123,7 +132,7 @@ resource "aws_cloudfront_distribution" "cdn" {
     max_ttl                = 86400
   }
 
-restrictions {
+  restrictions {
     geo_restriction {
       restriction_type = "whitelist"
       locations        = ["PE"] 
