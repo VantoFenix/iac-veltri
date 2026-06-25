@@ -66,22 +66,63 @@ resource "aws_wafv2_web_acl" "edge_waf" {
 # ---------------------------------------------------------
 # S3 Bucket Dummy Origin (para CloudFront)
 # ---------------------------------------------------------
+# 1. Generador de IDs únicos para los nombres de buckets
 resource "random_id" "bucket_id" {
   byte_length = 4
 }
 
-resource "aws_s3_bucket" "edge_origin" {  
+# 2. Bucket de Origen
+resource "aws_s3_bucket" "edge_origin" {
   bucket = "${var.proyecto}-${var.ambiente}-cf-origin-${random_id.bucket_id.hex}"
 }
 
-locals {
-  s3_origin_id = "S3Origin-${aws_s3_bucket.edge_origin.id}"
+# 3. Encriptación KMS para el Origen (REQUERIDO POR CHECKOV)
+resource "aws_s3_bucket_server_side_encryption_configuration" "edge_origin_encryption" {
+  bucket = aws_s3_bucket.edge_origin.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = "alias/aws/s3"
+    }
+  }
 }
 
+# 4. Versionamiento para el Origen (REQUERIDO POR CHECKOV)
+resource "aws_s3_bucket_versioning" "edge_origin_versioning" {
+  bucket = aws_s3_bucket.edge_origin.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# 5. Bucket de Logs
 resource "aws_s3_bucket" "cf_logs" {
   bucket = "${var.proyecto}-${var.ambiente}-cf-logs-${random_id.bucket_id.hex}"
 }
 
+# 6. Encriptación KMS para Logs (REQUERIDO POR CHECKOV)
+resource "aws_s3_bucket_server_side_encryption_configuration" "cf_logs_encryption" {
+  bucket = aws_s3_bucket.cf_logs.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = "alias/aws/s3"
+    }
+  }
+}
+
+# 7. Versionamiento para Logs (REQUERIDO POR CHECKOV)
+resource "aws_s3_bucket_versioning" "cf_logs_versioning" {
+  bucket = aws_s3_bucket.cf_logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# 8. Local para identificar el origen en CloudFront
+locals {
+  s3_origin_id = "S3Origin-${aws_s3_bucket.edge_origin.id}"
+}
 
 # CloudFront Distribution
 
