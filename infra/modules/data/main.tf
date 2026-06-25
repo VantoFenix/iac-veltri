@@ -107,6 +107,7 @@ resource "aws_rds_cluster_instance" "aurora_instances" {
   engine               = aws_rds_cluster.aurora_cluster.engine
   engine_version       = aws_rds_cluster.aurora_cluster.engine_version
   db_subnet_group_name = aws_db_subnet_group.aurora_subnet_group.name
+  performance_insights_enabled = true
   tags                 = { Name = "${var.proyecto}-${var.ambiente}-aurora-instance-${count.index + 1}", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 
   lifecycle {
