@@ -126,5 +126,13 @@ resource "aws_elasticache_replication_group" "redis_cluster" {
   security_group_ids         = [aws_security_group.data_sg.id]
   automatic_failover_enabled = true
   num_cache_clusters         = 2
+  at_rest_encryption_enabled = true
+  transit_encryption_enabled = true
+  auth_token                 = random_password.redis_auth_token.result
   tags                       = { Name = "${var.proyecto}-${var.ambiente}-redis", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+}
+
+resource "random_password" "redis_auth_token" {
+  length  = 32
+  special = false  # ElastiCache no acepta algunos caracteres especiales
 }
