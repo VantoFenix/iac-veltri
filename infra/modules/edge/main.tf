@@ -76,6 +76,11 @@ resource "aws_s3_bucket" "edge_origin" {
   bucket = "${var.proyecto}-${var.ambiente}-cf-origin-${random_id.bucket_id.hex}"
 }
 
+# 2.1 Bucket de Failover
+resource "aws_s3_bucket" "edge_origin_failover" {
+  bucket = "${var.proyecto}-${var.ambiente}-cf-failover-${random_id.bucket_id.hex}"
+}
+
 # 3. Encriptación KMS para el Origen (REQUERIDO POR CHECKOV)
 resource "aws_s3_bucket_server_side_encryption_configuration" "edge_origin_encryption" {
   bucket = aws_s3_bucket.edge_origin.id
@@ -87,9 +92,26 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "edge_origin_encry
   }
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "edge_origin_failover_encryption" {
+  bucket = aws_s3_bucket.edge_origin_failover.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = "alias/aws/s3"
+    }
+  }
+}
+
 # 4. Versionamiento para el Origen (REQUERIDO POR CHECKOV)
 resource "aws_s3_bucket_versioning" "edge_origin_versioning" {
   bucket = aws_s3_bucket.edge_origin.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "edge_origin_failover_versioning" {
+  bucket = aws_s3_bucket.edge_origin_failover.id
   versioning_configuration {
     status = "Enabled"
   }
@@ -121,7 +143,8 @@ resource "aws_s3_bucket_versioning" "cf_logs_versioning" {
 
 # 8. Local para identificar el origen en CloudFront
 locals {
-  s3_origin_id = "S3Origin-${aws_s3_bucket.edge_origin.id}"
+  s3_origin_id          = "S3Origin-${aws_s3_bucket.edge_origin.id}"
+  s3_failover_origin_id = "S3OriginFailover-${aws_s3_bucket.edge_origin_failover.id}"
 }
 
 # CloudFront Distribution
@@ -143,6 +166,28 @@ resource "aws_cloudfront_distribution" "cdn" {
     origin_access_control_id = aws_cloudfront_origin_access_control.oac.id # ✅ FIX: Aquí se enlaza la seguridad
   }
 
+  origin {
+    domain_name              = aws_s3_bucket.edge_origin_failover.bucket_regional_domain_name
+    origin_id                = local.s3_failover_origin_id
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
+  }
+
+  origin_group {
+    origin_id = "failover-group"
+
+    failover_criteria {
+      status_codes = [403, 404, 500, 502, 503, 504]
+    }
+
+    member {
+      origin_id = local.s3_origin_id
+    }
+
+    member {
+      origin_id = local.s3_failover_origin_id
+    }
+  }
+
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
@@ -158,7 +203,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = local.s3_origin_id
+    target_origin_id = "failover-group"
 
     forwarded_values {
       query_string = false
