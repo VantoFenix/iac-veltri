@@ -158,8 +158,9 @@ resource "aws_cloudfront_origin_access_control" "oac" {
 }
 
 # TU DISTRIBUCIÓN ACTUALIZADA
-# checkov:skip=CKV_AWS_174: Se usa el certificado por defecto de CloudFront (el cual no permite forzar TLS 1.2) por no contar con un dominio personalizado
+
 resource "aws_cloudfront_distribution" "cdn" {
+  # checkov:skip=CKV_AWS_174: Se usa el certificado por defecto de CloudFront por no contar con un dominio personalizado para el proyecto.
   origin {
     domain_name              = aws_s3_bucket.edge_origin.bucket_regional_domain_name
     origin_id                = local.s3_origin_id
