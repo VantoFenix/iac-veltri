@@ -231,25 +231,28 @@ resource "aws_cloudfront_distribution" "cdn" {
   }
 }
 
-# ---------------------------------------------------------
 # SQS Queue (Procesamiento asíncrono)
-# ---------------------------------------------------------
-resource "aws_sqs_queue" "async_queue_dlq" {
+
   name                      = "${var.proyecto}-${var.ambiente}-async-queue-dlq"
   message_retention_seconds = 1209600 # 14 dias
+  
+  # --- Habilitar encriptación para resolver CKV_AWS_27 ---
+  sqs_managed_sse_enabled   = true
 }
 
 resource "aws_sqs_queue" "async_queue" {
   name                       = "${var.proyecto}-${var.ambiente}-async-queue"
   message_retention_seconds  = 86400 # 1 dia
   visibility_timeout_seconds = 300   # 5 minutos
+  
+  # --- Habilitar encriptación para resolver CKV_AWS_27 ---
+  sqs_managed_sse_enabled    = true
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.async_queue_dlq.arn
     maxReceiveCount     = 3
   })
 }
-
 # ---------------------------------------------------------
 # Lambda Function (Procesamiento en borde / backend asíncrono)
 # ---------------------------------------------------------
