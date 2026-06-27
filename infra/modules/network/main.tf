@@ -212,7 +212,10 @@ data "aws_iam_policy_document" "vpc_flow_log_policy" {
       "logs:DescribeLogGroups",
       "logs:DescribeLogStreams",
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:logs:*:*:log-group:/aws/vpc/flowlogs/*",
+      "arn:aws:logs:*:*:log-group:/aws/vpc/flowlogs/*:log-stream:*"
+      ]
   }
 }
 
