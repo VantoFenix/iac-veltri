@@ -513,7 +513,10 @@ resource "aws_wafv2_web_acl_association" "alb_waf" {
 
 resource "aws_cloudwatch_log_group" "alb_waf_logs" {
   name              = "aws-waf-logs-${var.proyecto}-${var.ambiente}-alb"
-  retention_in_days = 90
+  retention_in_days = 365 # CKV_AWS_338: mínimo 1 año de retención
+
+  # CKV_AWS_158: cifrado KMS reutilizando la key existente del módulo
+  kms_key_id = aws_kms_key.cw_kms_key.arn
 
   tags = {
     Name       = "aws-waf-logs-${var.proyecto}-${var.ambiente}-alb"
