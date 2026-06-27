@@ -1,3 +1,6 @@
+# AÑADIDO PARA CKV2_AWS_64: data source para obtener el account ID de forma dinámica
+data "aws_caller_identity" "current" {}
+
 resource "aws_route53_zone" "main" {
   name = var.domain_name
 
@@ -33,12 +36,47 @@ resource "aws_route53_record" "alb" {
   }
 }
 
+# AÑADIDO PARA CKV2_AWS_64: KMS key para DNSSEC con policy explícita
+# La policy permite:
+#   - Al root account administrar la llave (obligatorio en toda KMS key policy)
+#   - Al servicio dnssec-route53.amazonaws.com usarla para firmar zonas DNS
 resource "aws_kms_key" "dnssec" {
   description              = "KMS key para DNSSEC de Route53 - Veltri Minimarket"
   deletion_window_in_days  = 7
   enable_key_rotation      = false
   customer_master_key_spec = "ECC_NIST_P256"
   key_usage                = "SIGN_VERIFY"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # Permite al root account administrar completamente la llave (requerido)
+        Sid    = "AllowRootAccountFullAccess"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        # Permite al servicio Route53 DNSSEC usar la llave para firmar
+        Sid    = "AllowRoute53DNSSECService"
+        Effect = "Allow"
+        Principal = {
+          Service = "dnssec-route53.amazonaws.com"
+        }
+        Action = [
+          "kms:DescribeKey",
+          "kms:GetPublicKey",
+          "kms:Sign"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-kms-dnssec"
     Modulo     = "dns"
