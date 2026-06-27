@@ -419,9 +419,89 @@ resource "aws_lb" "main" {
   }
 }
 
+# =============================================================================
+# 5a. WAFv2 REGIONAL — Protección del ALB contra Log4j (CKV2_AWS_76)
+# =============================================================================
+# El WAF del módulo edge usa scope CLOUDFRONT y NO puede asociarse a un ALB.
+# Este WAF REGIONAL vive junto al ALB y aplica la regla AMR
+# AWSManagedRulesKnownBadInputsRuleSet, que incluye protección contra
+# Log4Shell (CVE-2021-44228) y otras entradas maliciosas conocidas.
+# AÑADIDO PARA CKV2_AWS_76 (Fix Log4j AMR en ALB).
+# =============================================================================
+
+resource "aws_wafv2_web_acl" "alb_waf" {
+  name        = "${var.proyecto}-${var.ambiente}-alb-waf"
+  description = "WAF REGIONAL para el ALB - incluye proteccion AMR contra Log4j (CKV2_AWS_76)"
+  scope       = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  # Regla 1: Reglas comunes de AWS (OWASP Top 10, etc.)
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.proyecto}-${var.ambiente}-alb-waf-common"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Regla 2: Entradas maliciosas conocidas — incluye Log4Shell (AMR para CKV2_AWS_76)
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 2
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${var.proyecto}-${var.ambiente}-alb-waf-bad-inputs"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.proyecto}-${var.ambiente}-alb-waf"
+    sampled_requests_enabled   = true
+  }
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-alb-waf"
+    Modulo     = "compute"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+# Asociación del WAF REGIONAL al ALB (reemplaza el uso de var.waf_arn)
 resource "aws_wafv2_web_acl_association" "alb_waf" {
   resource_arn = aws_lb.main.arn
-  web_acl_arn  = var.waf_arn
+  web_acl_arn  = aws_wafv2_web_acl.alb_waf.arn
 }
 
 resource "aws_lb_target_group" "app" {

@@ -147,7 +147,7 @@ variable "enable_deletion_protection" {
   default     = false
 }
 
-variable "waf_arn" {
-  description = "ARN del WAF creado en el modulo edge para proteger el ALB publico."
-  type        = string
-}
+# (eliminada) variable "waf_arn" — el WAF REGIONAL ahora se crea directamente
+# dentro del módulo compute (recurso aws_wafv2_web_acl.alb_waf).
+# Ya no se recibe desde el módulo edge porque ese WAF tiene scope CLOUDFRONT
+# y no puede asociarse a un ALB. Fix: CKV2_AWS_76.
