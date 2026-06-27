@@ -32,3 +32,29 @@ resource "aws_route53_record" "alb" {
     evaluate_target_health = true
   }
 }
+
+resource "aws_kms_key" "dnssec" {
+  description              = "KMS key para DNSSEC de Route53 - Veltri Minimarket"
+  deletion_window_in_days  = 7
+  enable_key_rotation      = false
+  customer_master_key_spec = "ECC_NIST_P256"
+  key_usage                = "SIGN_VERIFY"
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-kms-dnssec"
+    Modulo     = "dns"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+resource "aws_route53_key_signing_key" "main" {
+  hosted_zone_id             = aws_route53_zone.main.zone_id
+  name                       = "${var.proyecto}-${var.ambiente}-ksk"
+  key_management_service_arn = aws_kms_key.dnssec.arn
+  status                     = "ACTIVE"
+}
+
+resource "aws_route53_hosted_zone_dnssec" "main" {
+  hosted_zone_id = aws_route53_zone.main.zone_id
+  depends_on     = [aws_route53_key_signing_key.main]
+}
