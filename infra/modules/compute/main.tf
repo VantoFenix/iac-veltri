@@ -314,6 +314,7 @@ resource "aws_iam_instance_profile" "ec2" {
 
 #CAMBIOS. 
 
+data "aws_caller_identity" "current" {}
 # =============================================================================
 # KMS KEY — Llave de encriptación para los logs de CloudWatch
 # =============================================================================
@@ -321,6 +322,37 @@ resource "aws_kms_key" "cw_kms_key" {
   description             = "Llave KMS para encriptar CloudWatch Logs del modulo compute"
   enable_key_rotation     = true
   deletion_window_in_days = 7
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Id      = "key-policy-cw"
+    Statement = [
+      {
+        Sid    = "DefaultAllow"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-kms-cw"
