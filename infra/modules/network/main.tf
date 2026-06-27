@@ -212,10 +212,11 @@ data "aws_iam_policy_document" "vpc_flow_log_policy" {
       "logs:DescribeLogGroups",
       "logs:DescribeLogStreams",
     ]
+    # Reemplazamos el "*" por las rutas estrictas de los Logs
     resources = [
-      "arn:aws:logs:*:*:log-group:/aws/vpc/flowlogs/*",
-      "arn:aws:logs:*:*:log-group:/aws/vpc/flowlogs/*:log-stream:*"
-      ]
+      "arn:aws:logs:*:*:log-group:*",
+      "arn:aws:logs:*:*:log-group:*:log-stream:*"
+    ]
   }
 }
 
