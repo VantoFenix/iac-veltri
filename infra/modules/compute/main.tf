@@ -390,14 +390,14 @@ resource "aws_lb" "main" {
 resource "aws_lb_target_group" "app" {
   name     = "${var.proyecto}-${var.ambiente}-tg-app"
   port     = var.app_port
-  protocol = "HTTP"
+  protocol = "HTTPS" # <-- Cambiado de HTTP a HTTPS
   vpc_id   = var.vpc_id
 
   health_check {
     enabled             = true
     path                = var.health_check_path # "/health" o "/"
     port                = "traffic-port"
-    protocol            = "HTTP"
+    protocol            = "HTTPS" # <-- Cambiado de HTTP a HTTPS
     interval            = 30 # cada 30 segundos
     timeout             = 10
     healthy_threshold   = 2
