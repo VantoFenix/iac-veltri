@@ -169,3 +169,55 @@ resource "aws_route_table_association" "private_data_6" {
   subnet_id      = aws_subnet.private_6_data.id
   route_table_id = aws_route_table.private_data.id
 }
+
+# -----------------------------------------------------------
+# VPC Flow Logs (Solución para Checkov CKV2_AWS_11)
+# -----------------------------------------------------------
+
+resource "aws_flow_log" "main" {
+  iam_role_arn    = aws_iam_role.vpc_flow_log_role.arn
+  log_destination = aws_cloudwatch_log_group.vpc_flow_log_group.arn
+  traffic_type    = "ALL"
+  vpc_id          = aws_vpc.main.id
+}
+
+resource "aws_cloudwatch_log_group" "vpc_flow_log_group" {
+  name              = "/aws/vpc/${var.proyecto}-${var.ambiente}-flow-logs"
+  retention_in_days = 7
+}
+
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["vpc-flow-logs.amazonaws.com"]
+    }
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "vpc_flow_log_role" {
+  name               = "${var.proyecto}-${var.ambiente}-vpc-flow-log-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+}
+
+data "aws_iam_policy_document" "vpc_flow_log_policy" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogGroups",
+      "logs:DescribeLogStreams",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "vpc_flow_log_policy" {
+  name   = "${var.proyecto}-${var.ambiente}-vpc-flow-log-policy"
+  role   = aws_iam_role.vpc_flow_log_role.id
+  policy = data.aws_iam_policy_document.vpc_flow_log_policy.json
+}
