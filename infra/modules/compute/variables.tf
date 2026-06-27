@@ -147,4 +147,7 @@ variable "enable_deletion_protection" {
   default     = false
 }
 
-
+variable "waf_arn" {
+  description = "ARN del WAF creado en el modulo edge para proteger el ALB publico."
+  type        = string
+}
