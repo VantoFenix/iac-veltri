@@ -48,6 +48,39 @@ resource "aws_kms_key" "secrets_key" {
   description             = "Llave KMS administrada por el cliente para cifrar los secretos de la base de datos"
   enable_key_rotation     = true
   deletion_window_in_days = 7
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Id      = "key-policy-secrets"
+    Statement = [
+      {
+        Sid    = "DefaultAllow"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowSecretsManager"
+        Effect = "Allow"
+        Principal = {
+          Service = "secretsmanager.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  
   tags                    = { Name = "${var.proyecto}-${var.ambiente}-kms-secrets", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 }
 
