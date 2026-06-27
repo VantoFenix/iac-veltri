@@ -504,6 +504,30 @@ resource "aws_wafv2_web_acl_association" "alb_waf" {
   web_acl_arn  = aws_wafv2_web_acl.alb_waf.arn
 }
 
+# =============================================================================
+# 5b. WAF Logging Configuration (CKV2_AWS_31)
+# =============================================================================
+# AWS exige que el nombre del Log Group empiece con "aws-waf-logs-".
+# AÑADIDO PARA CKV2_AWS_31: Ensure WAF2 has a Logging Configuration.
+# =============================================================================
+
+resource "aws_cloudwatch_log_group" "alb_waf_logs" {
+  name              = "aws-waf-logs-${var.proyecto}-${var.ambiente}-alb"
+  retention_in_days = 90
+
+  tags = {
+    Name       = "aws-waf-logs-${var.proyecto}-${var.ambiente}-alb"
+    Modulo     = "compute"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "alb_waf_logging" {
+  resource_arn            = aws_wafv2_web_acl.alb_waf.arn
+  log_destination_configs = [aws_cloudwatch_log_group.alb_waf_logs.arn]
+}
+
 resource "aws_lb_target_group" "app" {
   name     = "${var.proyecto}-${var.ambiente}-tg-app"
   port     = var.app_port
