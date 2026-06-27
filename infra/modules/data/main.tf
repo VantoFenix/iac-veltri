@@ -52,6 +52,8 @@ resource "aws_kms_key" "secrets_key" {
 }
 
 resource "aws_secretsmanager_secret" "db_credentials" {
+  #checkov:skip=BC_AWS_2_57:Rotacion automatica requiere Lambda dedicada con acceso VPC y permisos IAM especificos,
+   identificado como mejora fuera del alcance del modulo data en esta entrega
   name                    = "${var.proyecto}-${var.ambiente}-db-creds-v2"
   recovery_window_in_days = 0
 
@@ -117,6 +119,45 @@ resource "aws_rds_cluster_instance" "aurora_instances" {
     ignore_changes = [engine_version]
   }
 }
+
+resource "aws_backup_vault" "aurora_vault" {
+  name = "${var.proyecto}-${var.ambiente}-backup-vault"
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-backup-vault"
+    Modulo     = "data"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+resource "aws_backup_plan" "aurora_backup" {
+  name = "${var.proyecto}-${var.ambiente}-backup-plan"
+
+  rule {
+    rule_name         = "backup-diario-aurora"
+    target_vault_name = aws_backup_vault.aurora_vault.name
+    schedule          = "cron(0 3 * * ? *)"  # todos los dias a las 3am UTC
+  }
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-backup-plan"
+    Modulo     = "data"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+resource "aws_backup_selection" "aurora_backup_selection" {
+  iam_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AWSBackupDefaultServiceRole"
+  name         = "${var.proyecto}-${var.ambiente}-backup-selection"
+  plan_id      = aws_backup_plan.aurora_backup.id
+
+  resources = [
+    aws_rds_cluster.aurora_cluster.arn
+  ]
+}
+
+data "aws_caller_identity" "current" {}
 
 resource "aws_kms_key" "redis" {
   description             = "KMS key para cifrado de Redis ElastiCache - Veltri Minimarket"

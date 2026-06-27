@@ -387,6 +387,11 @@ resource "aws_lb" "main" {
   }
 }
 
+resource "aws_wafv2_web_acl_association" "alb_waf" {
+  resource_arn = aws_lb.main.arn
+  web_acl_arn  = var.waf_arn
+}
+
 resource "aws_lb_target_group" "app" {
   name     = "${var.proyecto}-${var.ambiente}-tg-app"
   port     = var.app_port
