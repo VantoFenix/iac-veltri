@@ -167,8 +167,38 @@ resource "aws_route_table_association" "private_data_6" {
 }
 
 # -----------------------------------------------------------
-# VPC Flow Logs (Solución para Checkov CKV2_AWS_11)
+# VPC Flow Logs (Solución para Checkov CKV2_AWS_11, 158, 338)
 # -----------------------------------------------------------
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_kms_key" "vpc_logs_kms_key" {
+  description             = "KMS para encriptar CloudWatch Logs de VPC Flow Logs"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "DefaultAllow"
+        Effect = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogs"
+        Effect = "Allow"
+        Principal = { Service = "logs.amazonaws.com" }
+        Action = [
+          "kms:Encrypt", "kms:Decrypt", "kms:ReEncrypt*",
+          "kms:GenerateDataKey*", "kms:DescribeKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
 
 resource "aws_flow_log" "main" {
   iam_role_arn    = aws_iam_role.vpc_flow_log_role.arn
@@ -179,7 +209,8 @@ resource "aws_flow_log" "main" {
 
 resource "aws_cloudwatch_log_group" "vpc_flow_log_group" {
   name              = "/aws/vpc/${var.proyecto}-${var.ambiente}-flow-logs"
-  retention_in_days = 7
+  retention_in_days = 365 # CKV_AWS_338: 1 año
+  kms_key_id        = aws_kms_key.vpc_logs_kms_key.arn # CKV_AWS_158: Encriptación
 }
 
 data "aws_iam_policy_document" "assume_role" {
@@ -198,25 +229,19 @@ resource "aws_iam_role" "vpc_flow_log_role" {
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
-data "aws_iam_policy_document" "vpc_flow_log_policy" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents",
-      "logs:DescribeLogGroups",
-      "logs:DescribeLogStreams",
-    ]
-    resources = [
-      "arn:aws:logs:*:*:log-group:*",
-      "arn:aws:logs:*:*:log-group:*:log-stream:*"
-    ]
-  }
-}
-
 resource "aws_iam_role_policy" "vpc_flow_log_policy" {
   name   = "${var.proyecto}-${var.ambiente}-vpc-flow-log-policy"
   role   = aws_iam_role.vpc_flow_log_role.id
-  policy = data.aws_iam_policy_document.vpc_flow_log_policy.json
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "logs:CreateLogGroup", "logs:CreateLogStream",
+        "logs:PutLogEvents", "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams"
+      ]
+      Resource = ["arn:aws:logs:*:*:log-group:*", "arn:aws:logs:*:*:log-group:*:log-stream:*"]
+    }]
+  })
 }
