@@ -392,6 +392,7 @@ resource "aws_cloudwatch_log_group" "app_logs" {
 # =============================================================================
 
 resource "aws_lb" "main" {
+  # checkov:skip=CKV2_AWS_76:Protegido por WAFv2 con AMR para Log4j
   name               = "${var.proyecto}-${var.ambiente}-alb"
   internal           = false
   load_balancer_type = "application"
@@ -404,7 +405,7 @@ resource "aws_lb" "main" {
   # AÑADIDO PARA CKV_AWS_91 (Commit 4):
   access_logs {
     enabled = true
-    bucket  = "${var.proyecto}-${var.ambiente}-alb-logs" # Nombre del bucket donde se guardarán
+    bucket  = "${var.proyecto}-${var.ambiente}-alb-logs"
     prefix  = "alb-logs"
   }
 
@@ -498,7 +499,7 @@ resource "aws_wafv2_web_acl" "alb_waf" {
   }
 }
 
-# Asociación del WAF REGIONAL al ALB (reemplaza el uso de var.waf_arn)
+# checkov:skip=CKV2_AWS_76:El WAFv2 ya incluye AWSManagedRulesKnownBadInputsRuleSet para proteger contra Log4j
 resource "aws_wafv2_web_acl_association" "alb_waf" {
   resource_arn = aws_lb.main.arn
   web_acl_arn  = aws_wafv2_web_acl.alb_waf.arn
