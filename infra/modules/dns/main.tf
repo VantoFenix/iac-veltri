@@ -98,13 +98,52 @@ resource "aws_route53_hosted_zone_dnssec" "main" {
 }
 
 # -----------------------------------------------------------
-# Route 53 Query Logging (Solución para CKV2_AWS_39)
+# Route 53 Query Logging (Solución para CKV2_AWS_39, 158 y 338)
 # -----------------------------------------------------------
 
-# 1. Grupo de logs en CloudWatch
+# 1. KMS Key para encriptar los logs (Fix CKV_AWS_158)
+resource "aws_kms_key" "r53_logs_kms_key" {
+  description             = "KMS para encriptar CloudWatch Logs de Route 53"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "DefaultAllow"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# 2. Grupo de logs en CloudWatch (Actualizado)
 resource "aws_cloudwatch_log_group" "route53_query_logs" {
   name              = "/aws/route53/${var.domain_name}"
-  retention_in_days = 7
+  retention_in_days = 365 # Fix CKV_AWS_338: Retención de al menos 1 año
+
+  kms_key_id = aws_kms_key.r53_logs_kms_key.arn # Fix CKV_AWS_158: Encriptación con KMS
 
   tags = {
     Name       = "${var.proyecto}-${var.ambiente}-r53-logs"
@@ -114,7 +153,7 @@ resource "aws_cloudwatch_log_group" "route53_query_logs" {
   }
 }
 
-# 2. Política de recursos para permitir a Route 53 escribir logs
+# 3. Política de recursos para permitir a Route 53 escribir logs
 data "aws_iam_policy_document" "route53_query_logging_policy" {
   statement {
     actions = [
@@ -134,7 +173,7 @@ resource "aws_cloudwatch_log_resource_policy" "route53_query_logging_policy" {
   policy_name     = "${var.proyecto}-${var.ambiente}-route53-query-logging-policy"
 }
 
-# 3. Activación de los logs en la zona DNS
+# 4. Activación de los logs en la zona DNS
 resource "aws_route53_query_log" "main" {
   depends_on = [aws_cloudwatch_log_resource_policy.route53_query_logging_policy]
 
