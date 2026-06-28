@@ -4,14 +4,15 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
+  #checkov:skip=CKV2_AWS_11:VPC Flow Logs estan configurados al final del archivo
+
   tags = {
     Name     = "${var.proyecto}-${var.ambiente}-vpc"
     Ambiente = var.ambiente
   }
 }
 
-# SOLUCION CKV2_AWS_12 â€” Bloquear el Security Group por defecto de la VPC
-
+# SOLUCION CKV2_AWS_12 — Bloquear el Security Group por defecto de la VPC
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
 
@@ -25,7 +26,6 @@ resource "aws_default_security_group" "default" {
     Gestionado = "Terraform"
   }
 }
-
 
 # 2. Internet Gateway (Para dar salida a internet)
 resource "aws_internet_gateway" "igw" {
@@ -79,6 +79,7 @@ resource "aws_subnet" "private_6_data" {
   availability_zone = "${var.aws_region}b"
   tags              = { Name = "${var.proyecto}-${var.ambiente}-private-data-6" }
 }
+
 # 6 IPs Elasticas y NAT Gateways
 resource "aws_eip" "nat_1" { domain = "vpc" }
 resource "aws_eip" "nat_2" { domain = "vpc" }
@@ -96,7 +97,6 @@ resource "aws_nat_gateway" "nat_gw_2" {
 }
 
 # 7 Tablas de Enrutamiento Publicas
-
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   route {
@@ -117,7 +117,6 @@ resource "aws_route_table_association" "pub_2" {
 }
 
 # 7.1 Route Table Privada - Compute
-
 resource "aws_route_table" "private_compute" {
   vpc_id = aws_vpc.main.id
 
@@ -132,7 +131,6 @@ resource "aws_route_table" "private_compute" {
 }
 
 # Asociaciones Compute
-
 resource "aws_route_table_association" "private_compute_3" {
   subnet_id      = aws_subnet.private_3_compute.id
   route_table_id = aws_route_table.private_compute.id
@@ -144,7 +142,6 @@ resource "aws_route_table_association" "private_compute_4" {
 }
 
 # Route Table Privada - Data
-
 resource "aws_route_table" "private_data" {
   vpc_id = aws_vpc.main.id
 
@@ -159,7 +156,6 @@ resource "aws_route_table" "private_data" {
 }
 
 # Asociaciones Data
-
 resource "aws_route_table_association" "private_data_5" {
   subnet_id      = aws_subnet.private_5_data.id
   route_table_id = aws_route_table.private_data.id
@@ -170,6 +166,32 @@ resource "aws_route_table_association" "private_data_6" {
   route_table_id = aws_route_table.private_data.id
 }
 
+# -----------------------------------------------------------
+# VPC Flow Logs (Solución para Checkov CKV2_AWS_11)
+# -----------------------------------------------------------
+
+resource "aws_flow_log" "main" {
+  iam_role_arn    = aws_iam_role.vpc_flow_log_role.arn
+  log_destination = aws_cloudwatch_log_group.vpc_flow_log_group.arn
+  traffic_type    = "ALL"
+  vpc_id          = aws_vpc.main.id
+}
+
+resource "aws_cloudwatch_log_group" "vpc_flow_log_group" {
+  name              = "/aws/vpc/${var.proyecto}-${var.ambiente}-flow-logs"
+  retention_in_days = 7
+}
+
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["vpc-flow-logs.amazonaws.com"]
+    }
+    actions = ["sts:AssumeRole"]
+  }
+}
 
 resource "aws_iam_role" "vpc_flow_log_role" {
   name               = "${var.proyecto}-${var.ambiente}-vpc-flow-log-role"
@@ -186,7 +208,6 @@ data "aws_iam_policy_document" "vpc_flow_log_policy" {
       "logs:DescribeLogGroups",
       "logs:DescribeLogStreams",
     ]
-    # Reemplazamos el "*" por las rutas estrictas de los Logs
     resources = [
       "arn:aws:logs:*:*:log-group:*",
       "arn:aws:logs:*:*:log-group:*:log-stream:*"
