@@ -180,7 +180,7 @@ resource "aws_flow_log" "main" {
   traffic_type    = "ALL"
   vpc_id          = aws_vpc.main.id
 }
-# checkov:skip=CKV_AWS_158: Se utiliza la encriptacion administrada por defecto de AWS en lugar de una llave KMS personalizada para evitar complejidad innecesaria en el proyecto
+
 resource "aws_cloudwatch_log_group" "vpc_flow_log_group" {
   name              = "/aws/vpc/${var.proyecto}-${var.ambiente}-flow-logs"
   retention_in_days = 365 # CKV_AWS_338: Mínimo 1 año de retención
