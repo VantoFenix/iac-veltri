@@ -96,3 +96,48 @@ resource "aws_route53_hosted_zone_dnssec" "main" {
   hosted_zone_id = aws_route53_zone.main.zone_id
   depends_on     = [aws_route53_key_signing_key.main]
 }
+
+# -----------------------------------------------------------
+# Route 53 Query Logging (Solución para CKV2_AWS_39)
+# -----------------------------------------------------------
+
+# 1. Grupo de logs en CloudWatch
+resource "aws_cloudwatch_log_group" "route53_query_logs" {
+  name              = "/aws/route53/${var.domain_name}"
+  retention_in_days = 7
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-r53-logs"
+    Modulo     = "dns"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+# 2. Política de recursos para permitir a Route 53 escribir logs
+data "aws_iam_policy_document" "route53_query_logging_policy" {
+  statement {
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+    resources = ["arn:aws:logs:*:*:log-group:/aws/route53/*"]
+    principals {
+      identifiers = ["route53.amazonaws.com"]
+      type        = "Service"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_resource_policy" "route53_query_logging_policy" {
+  policy_document = data.aws_iam_policy_document.route53_query_logging_policy.json
+  policy_name     = "${var.proyecto}-${var.ambiente}-route53-query-logging-policy"
+}
+
+# 3. Activación de los logs en la zona DNS
+resource "aws_route53_query_log" "main" {
+  depends_on = [aws_cloudwatch_log_resource_policy.route53_query_logging_policy]
+
+  cloudwatch_log_group_arn = aws_cloudwatch_log_group.route53_query_logs.arn
+  zone_id                  = aws_route53_zone.main.zone_id
+}
