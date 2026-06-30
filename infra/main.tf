@@ -49,3 +49,5 @@ module "dns" {
   alb_dns_name = module.compute.alb_dns_name
   alb_zone_id  = module.compute.alb_zone_id
 }
+
+# Trigger CI pipeline
