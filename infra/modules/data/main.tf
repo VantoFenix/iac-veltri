@@ -86,7 +86,7 @@ resource "aws_kms_key" "secrets_key" {
 
 resource "aws_secretsmanager_secret" "db_credentials" {
   #checkov:skip=BC_AWS_2_57:Rotacion automatica requiere Lambda dedicada con acceso VPC y permisos IAM especificos,
-   identificado como mejora fuera del alcance del modulo data en esta entrega
+  # identificado como mejora fuera del alcance del modulo data en esta entrega
   name                    = "${var.proyecto}-${var.ambiente}-db-creds-v2"
   recovery_window_in_days = 0
 
