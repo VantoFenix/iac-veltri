@@ -233,6 +233,7 @@ resource "aws_cloudfront_distribution" "cdn" {
 
 # SQS Queue (Procesamiento asíncrono)
 
+resource "aws_sqs_queue" "async_queue_dlq" {
   name                      = "${var.proyecto}-${var.ambiente}-async-queue-dlq"
   message_retention_seconds = 1209600 # 14 dias
   
