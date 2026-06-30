@@ -392,6 +392,7 @@ resource "aws_cloudwatch_log_group" "app_logs" {
 # =============================================================================
 
 resource "aws_lb" "main" {
+  # checkov:skip=CKV2_AWS_76:El WAFv2 REGIONAL con AWSManagedRulesKnownBadInputsRuleSet (proteccion Log4j) esta asociado mediante aws_wafv2_web_acl_association.alb_waf. Checkov no detecta la relacion entre recursos separados.
   # checkov:skip=CKV2_AWS_76:Protegido por WAFv2 con AMR para Log4j
   name               = "${var.proyecto}-${var.ambiente}-alb"
   internal           = false

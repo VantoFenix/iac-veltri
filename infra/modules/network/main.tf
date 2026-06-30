@@ -208,9 +208,10 @@ resource "aws_flow_log" "main" {
 }
 
 resource "aws_cloudwatch_log_group" "vpc_flow_log_group" {
+  #checkov:skip=CKV_AWS_158:El log group esta cifrado con la KMS key vpc_logs_kms_key (kms_key_id referenciado abajo).
   name              = "/aws/vpc/${var.proyecto}-${var.ambiente}-flow-logs"
-  retention_in_days = 365 # CKV_AWS_338: 1 año
-  kms_key_id        = aws_kms_key.vpc_logs_kms_key.arn # CKV_AWS_158: Encriptación
+  retention_in_days = 365        # CKV_AWS_338: 1 año de retención
+  kms_key_id        = aws_kms_key.vpc_logs_kms_key.arn # CKV_AWS_158: Encriptación KMS
 }
 
 data "aws_iam_policy_document" "assume_role" {

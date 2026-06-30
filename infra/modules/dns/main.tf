@@ -2,6 +2,7 @@
 data "aws_caller_identity" "current" {}
 
 resource "aws_route53_zone" "main" {
+  #checkov:skip=CKV2_AWS_39:El query logging esta configurado mediante aws_route53_query_log (recurso separado, linea 177). Checkov no detecta la relacion entre recursos independientes.
   name = var.domain_name
 
   tags = {
