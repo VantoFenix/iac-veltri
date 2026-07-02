@@ -1,15 +1,15 @@
 output "aurora_cluster_endpoint" {
-  description = "Endpoint de escritura principal de Aurora"
+  description = "Endpoint de escritura principal del cluster Aurora MySQL"
   value       = aws_rds_cluster.aurora_cluster.endpoint
 }
 
 output "aurora_reader_endpoint" {
-  description = "Endpoint de lectura del clúster de Aurora"
+  description = "Endpoint de lectura del cluster Aurora MySQL"
   value       = aws_rds_cluster.aurora_cluster.reader_endpoint
 }
 
 output "redis_endpoint" {
-  description = "Endpoint de conexión primaria a Redis"
+  description = "Endpoint de conexion primaria a Redis"
   value       = aws_elasticache_replication_group.redis_cluster.primary_endpoint_address
 }
 

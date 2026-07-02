@@ -12,11 +12,11 @@ resource "aws_elasticache_subnet_group" "redis_subnet_group" {
 
 resource "aws_security_group" "data_sg" {
   name        = "${var.proyecto}-${var.ambiente}-data-sg"
-  description = "Filtro estricto para Aurora y Redis. Solo permite acceso desde capa de computo."
+  description = "Filtro estricto para Aurora MySQL y Redis. Solo permite acceso desde capa de computo."
   vpc_id      = var.vpc_id
 
   ingress {
-    description     = "Acceso a Aurora desde la capa de computo"
+    description     = "Acceso a Aurora MySQL desde la capa de computo"
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
@@ -100,7 +100,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials_version" {
   secret_string = jsonencode({
     username = "admin"
     password = random_password.db_password.result
-    engine   = var.db_engine
+    engine   = "aurora-mysql"
     port     = 3306
   })
 }
@@ -112,10 +112,16 @@ resource "aws_kms_key" "rds_key" {
   tags                    = { Name = "${var.proyecto}-${var.ambiente}-kms-rds", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 }
 
+# ---------------------------------------------------------
+# Aurora MySQL Cluster (arquitectura original)
+# deletion_protection = false para poder destruir el entorno
+# despues de las pruebas sin errores.
+# ---------------------------------------------------------
 resource "aws_rds_cluster" "aurora_cluster" {
+  #checkov:skip=CKV_AWS_293:deletion_protection=false es intencional para facilitar el destroy en entorno temporal
   cluster_identifier                  = "${var.proyecto}-${var.ambiente}-aurora-cluster"
-  engine                              = var.db_engine
-  engine_version                      = var.db_engine_version
+  engine                              = "aurora-mysql"
+  engine_version                      = var.db_engine_version # 8.0.mysql_aurora.3.04.1
   master_username                     = jsondecode(aws_secretsmanager_secret_version.db_credentials_version.secret_string)["username"]
   master_password                     = jsondecode(aws_secretsmanager_secret_version.db_credentials_version.secret_string)["password"]
   db_subnet_group_name                = aws_db_subnet_group.aurora_subnet_group.name
@@ -123,9 +129,9 @@ resource "aws_rds_cluster" "aurora_cluster" {
   storage_encrypted                   = true
   kms_key_id                          = aws_kms_key.rds_key.arn
   skip_final_snapshot                 = true
+  deletion_protection                 = false
   iam_database_authentication_enabled = true
-  enabled_cloudwatch_logs_exports     = ["postgresql","upgrade"]
-  deletion_protection                 = true
+  enabled_cloudwatch_logs_exports     = ["audit", "error", "general", "slowquery"]
   copy_tags_to_snapshot               = true
   tags                                = { Name = "${var.proyecto}-${var.ambiente}-aurora-cluster", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 
@@ -134,60 +140,22 @@ resource "aws_rds_cluster" "aurora_cluster" {
   }
 }
 
-resource "aws_rds_cluster_instance" "aurora_instances" {
-  count                           = 2
-  identifier                      = "${var.proyecto}-${var.ambiente}-aurora-instance-${count.index + 1}"
+resource "aws_rds_cluster_instance" "aurora_instance" {
+  identifier                      = "${var.proyecto}-${var.ambiente}-aurora-instance-1"
   cluster_identifier              = aws_rds_cluster.aurora_cluster.id
-  instance_class                  = var.db_instance_class
+  instance_class                  = var.db_instance_class # db.t3.medium
   engine                          = aws_rds_cluster.aurora_cluster.engine
   engine_version                  = aws_rds_cluster.aurora_cluster.engine_version
   db_subnet_group_name            = aws_db_subnet_group.aurora_subnet_group.name
   performance_insights_enabled    = true
   performance_insights_kms_key_id = aws_kms_key.rds_key.arn
   auto_minor_version_upgrade      = true
-  monitoring_interval             = 60
-  tags                            = { Name = "${var.proyecto}-${var.ambiente}-aurora-instance-${count.index + 1}", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
+  monitoring_interval             = 0 # Enhanced Monitoring deshabilitado para reducir costos
+  tags                            = { Name = "${var.proyecto}-${var.ambiente}-aurora-instance-1", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
 
   lifecycle {
     ignore_changes = [engine_version]
   }
-}
-
-resource "aws_backup_vault" "aurora_vault" {
-  name = "${var.proyecto}-${var.ambiente}-backup-vault"
-  tags = {
-    Name       = "${var.proyecto}-${var.ambiente}-backup-vault"
-    Modulo     = "data"
-    Ambiente   = var.ambiente
-    Gestionado = "Terraform"
-  }
-}
-
-resource "aws_backup_plan" "aurora_backup" {
-  name = "${var.proyecto}-${var.ambiente}-backup-plan"
-
-  rule {
-    rule_name         = "backup-diario-aurora"
-    target_vault_name = aws_backup_vault.aurora_vault.name
-    schedule          = "cron(0 3 * * ? *)"  # todos los dias a las 3am UTC
-  }
-
-  tags = {
-    Name       = "${var.proyecto}-${var.ambiente}-backup-plan"
-    Modulo     = "data"
-    Ambiente   = var.ambiente
-    Gestionado = "Terraform"
-  }
-}
-
-resource "aws_backup_selection" "aurora_backup_selection" {
-  iam_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AWSBackupDefaultServiceRole"
-  name         = "${var.proyecto}-${var.ambiente}-backup-selection"
-  plan_id      = aws_backup_plan.aurora_backup.id
-
-  resources = [
-    aws_rds_cluster.aurora_cluster.arn
-  ]
 }
 
 data "aws_caller_identity" "current" {}

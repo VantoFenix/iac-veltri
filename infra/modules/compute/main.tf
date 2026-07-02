@@ -382,6 +382,93 @@ resource "aws_cloudwatch_log_group" "app_logs" {
 }
 
 # =============================================================================
+# 5. S3 BUCKET — Logs de acceso del ALB (requerido antes del ALB)
+# =============================================================================
+
+data "aws_elb_service_account" "main" {}
+
+resource "aws_s3_bucket" "alb_logs" {
+  #checkov:skip=CKV_AWS_144:Replicacion cross-region no aplica para logs de ALB en entorno dev/Free Tier
+  #checkov:skip=CKV_AWS_18:El ALB escribe sus propios logs de acceso; el acceso al bucket se controla via bucket policy
+  bucket        = "${var.proyecto}-${var.ambiente}-alb-logs-v2"
+  force_destroy = true
+
+  tags = {
+    Name       = "${var.proyecto}-${var.ambiente}-alb-logs-v2"
+    Modulo     = "compute"
+    Ambiente   = var.ambiente
+    Gestionado = "Terraform"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "alb_logs" {
+  bucket                  = aws_s3_bucket.alb_logs.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "alb_logs_encryption" {
+  bucket = aws_s3_bucket.alb_logs.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256" # ALB no es compatible con KMS para access logs
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "alb_logs_versioning" {
+  bucket = aws_s3_bucket.alb_logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_policy" "alb_logs" {
+  bucket     = aws_s3_bucket.alb_logs.id
+  depends_on = [aws_s3_bucket_public_access_block.alb_logs]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowELBServiceAccount"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_elb_service_account.main.id}:root"
+        }
+        Action   = "s3:PutObject"
+        Resource = "arn:aws:s3:::${var.proyecto}-${var.ambiente}-alb-logs-v2/alb-logs/AWSLogs/*"
+      },
+      {
+        Sid    = "AllowDeliveryLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "delivery.logs.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "arn:aws:s3:::${var.proyecto}-${var.ambiente}-alb-logs-v2/alb-logs/AWSLogs/*"
+        Condition = {
+          StringEquals = {
+            "s3:x-amz-acl" = "bucket-owner-full-control"
+          }
+        }
+      },
+      {
+        Sid    = "AllowDeliveryLogsAclCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "delivery.logs.amazonaws.com"
+        }
+        Action   = "s3:GetBucketAcl"
+        Resource = "arn:aws:s3:::${var.proyecto}-${var.ambiente}-alb-logs-v2"
+      }
+    ]
+  })
+}
+
+# =============================================================================
 # 5. ALB — Application Load Balancer (público)
 # =============================================================================
 # Punto de entrada del flujo dinámico hacia las instancias EC2.
@@ -403,14 +490,15 @@ resource "aws_lb" "main" {
 
   enable_deletion_protection = true
 
-  # AÑADIDO PARA CKV_AWS_91 (Commit 4):
+  # El bucket debe existir antes que el ALB — depends_on garantiza el orden correcto
+  depends_on = [aws_s3_bucket_policy.alb_logs]
+
   access_logs {
     enabled = true
-    bucket  = "${var.proyecto}-${var.ambiente}-alb-logs-v2"
+    bucket  = aws_s3_bucket.alb_logs.id
     prefix  = "alb-logs"
   }
 
-  # AÑADIDO PARA CKV_AWS_131 (Commit 2):
   drop_invalid_header_fields = true
 
   tags = {

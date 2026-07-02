@@ -26,19 +26,19 @@ variable "security_group_compute_id" {
 variable "db_engine" {
   description = "Motor de base de datos para Aurora"
   type        = string
-  default     = "aurora-postgresql"
+  default     = "aurora-mysql"
 }
 
 variable "db_engine_version" {
-  description = "Versión del motor de base de datos"
+  description = "Version del motor Aurora MySQL"
   type        = string
-  default     = "15.4"
+  default     = "8.0.mysql_aurora.3.04.1"
 }
 
 variable "db_instance_class" {
-  description = "Clase de instancia para Aurora"
+  description = "Clase de instancia para Aurora MySQL (db.t3.medium es la mas economica soportada)"
   type        = string
-  default     = "db.t4g.medium"
+  default     = "db.t3.medium"
 }
 
 variable "redis_node_type" {
