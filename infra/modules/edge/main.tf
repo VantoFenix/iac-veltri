@@ -133,6 +133,21 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cf_logs_encryptio
   }
 }
 
+#  Controles de Propiedad y ACL 
+
+resource "aws_s3_bucket_ownership_controls" "cf_logs_ownership" {
+  bucket = aws_s3_bucket.cf_logs.id
+  rule {
+    object_ownership = "ObjectWriter"
+  }
+}
+
+resource "aws_s3_bucket_acl" "cf_logs_acl" {
+  depends_on = [aws_s3_bucket_ownership_controls.cf_logs_ownership]
+  bucket     = aws_s3_bucket.cf_logs.id
+  acl        = "log-delivery-write"
+}
+
 # 7. Versionamiento para Logs (REQUERIDO POR CHECKOV)
 resource "aws_s3_bucket_versioning" "cf_logs_versioning" {
   bucket = aws_s3_bucket.cf_logs.id

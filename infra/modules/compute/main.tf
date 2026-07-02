@@ -406,7 +406,7 @@ resource "aws_lb" "main" {
   # AÑADIDO PARA CKV_AWS_91 (Commit 4):
   access_logs {
     enabled = true
-    bucket  = "${var.proyecto}-${var.ambiente}-alb-logs"
+    bucket  = "${var.proyecto}-${var.ambiente}-alb-logs-v2"
     prefix  = "alb-logs"
   }
 
@@ -433,7 +433,7 @@ resource "aws_lb" "main" {
 
 resource "aws_wafv2_web_acl" "alb_waf" {
   name        = "${var.proyecto}-${var.ambiente}-alb-waf"
-  description = "WAF REGIONAL para el ALB - incluye proteccion AMR contra Log4j (CKV2_AWS_76)"
+  description = "WAF REGIONAL para el ALB - incluye proteccion AMR contra Log4j CKV2_AWS_76"
   scope       = "REGIONAL"
 
   default_action {

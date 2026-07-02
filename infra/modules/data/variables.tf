@@ -26,13 +26,13 @@ variable "security_group_compute_id" {
 variable "db_engine" {
   description = "Motor de base de datos para Aurora"
   type        = string
-  default     = "aurora-mysql"
+  default     = "aurora-postgresql"
 }
 
 variable "db_engine_version" {
   description = "Versión del motor de base de datos"
   type        = string
-  default     = "8.0.mysql_aurora.3.10.3"
+  default     = "15.4"
 }
 
 variable "db_instance_class" {
