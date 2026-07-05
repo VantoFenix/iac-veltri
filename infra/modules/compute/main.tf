@@ -488,7 +488,7 @@ resource "aws_lb" "main" {
   subnets         = var.public_subnets
   security_groups = [aws_security_group.alb.id]
 
-  enable_deletion_protection = true
+  enable_deletion_protection = var.enable_deletion_protection
 
   # El bucket debe existir antes que el ALB — depends_on garantiza el orden correcto
   depends_on = [aws_s3_bucket_policy.alb_logs]
