@@ -147,8 +147,10 @@ resource "aws_rds_cluster_instance" "aurora_instance" {
   engine                          = aws_rds_cluster.aurora_cluster.engine
   engine_version                  = aws_rds_cluster.aurora_cluster.engine_version
   db_subnet_group_name            = aws_db_subnet_group.aurora_subnet_group.name
-  performance_insights_enabled    = true
-  performance_insights_kms_key_id = aws_kms_key.rds_key.arn
+
+  performance_insights_enabled    = false
+  # performance_insights_kms_key_id = aws_kms_key.rds_key.arn ya no se usa
+  
   auto_minor_version_upgrade      = true
   monitoring_interval             = 0 # Enhanced Monitoring deshabilitado para reducir costos
   tags                            = { Name = "${var.proyecto}-${var.ambiente}-aurora-instance-1", Modulo = "data", Ambiente = var.ambiente, Gestionado = "Terraform" }
